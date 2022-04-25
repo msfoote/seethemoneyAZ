@@ -1,0 +1,203 @@
+import requests
+import json
+import pandas as pd
+import numpy as np
+
+class seethemoneyAZ:
+    """
+    Initializes a seethemoneyAZ object initialized with a particular set of cookies
+    """
+    def __init__(self, cookie, userid) -> None:
+        self.cookies = {
+            '__cf_bm': cookie,
+            'SeeTheMoneyUserHistory': f'UserID=userid&URLHash=JurisdictionId=0|Page=80|startYear=2000|endYear=2022|IsLessActive=false|ShowOfficeHolder=false|View=Detail|Name=7~1272383|entityId=1272383|TablePage=1|TableLength=2',
+        }
+        self.headers = {
+            'authority': 'seethemoney.az.gov',
+            'sec-ch-ua': '"Google Chrome";v="95", "Chromium";v="95", ";Not A Brand";v="99"',
+            'accept': 'application/json, text/javascript, */*; q=0.01',
+            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'x-requested-with': 'XMLHttpRequest',
+            'sec-ch-ua-mobile': '?0',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36',
+            'sec-ch-ua-platform': '"Windows"',
+            'origin': 'https://seethemoney.az.gov',
+            'sec-fetch-site': 'same-origin',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-dest': 'empty',
+            'referer': 'https://seethemoney.az.gov/Reporting/Explore',
+            'accept-language': 'en-US,en;q=0.9',
+        }
+
+    
+    def campaign_list(self, name):
+        params = [
+            ('Page', '1'),
+            ('startYear', '2002'),
+            ('endYear', '2022'),
+            ('JurisdictionId', '0'),
+            ('TablePage', '1'),
+            ('TableLength', '10'),
+            ('IsLessActive', 'false'),
+            ('ShowOfficeHolder', 'false'),
+            ('ChartName', '1'),
+            ('IsLessActive', 'false'),
+            ('ShowOfficeHolder', 'false'),
+        ]
+        data = {
+            'draw': '999',
+            # 'columns[0][data]': 'EntityLastName',
+            # 'columns[0][name]': '',
+            # 'columns[0][searchable]': 'true',
+            # 'columns[0][orderable]': 'true',
+            # 'columns[0][search][value]': '',
+            # 'columns[0][search][regex]': 'false',
+            # 'columns[1][data]': 'CommitteeName',
+            # 'columns[1][name]': '',
+            # 'columns[1][searchable]': 'true',
+            # 'columns[1][orderable]': 'true',
+            # 'columns[1][search][value]': '',
+            # 'columns[1][search][regex]': 'false',
+            # 'columns[2][data]': 'OfficeName',
+            # 'columns[2][name]': '',
+            # 'columns[2][searchable]': 'true',
+            # 'columns[2][orderable]': 'true',
+            # 'columns[2][search][value]': '',
+            # 'columns[2][search][regex]': 'false',
+            # 'columns[3][data]': 'PartyName',
+            # 'columns[3][name]': '',
+            # 'columns[3][searchable]': 'true',
+            # 'columns[3][orderable]': 'true',
+            # 'columns[3][search][value]': '',
+            # 'columns[3][search][regex]': 'false',
+            # 'columns[4][data]': 'Income',
+            # 'columns[4][name]': '',
+            # 'columns[4][searchable]': 'true',
+            # 'columns[4][orderable]': 'true',
+            # 'columns[4][search][value]': '',
+            # 'columns[4][search][regex]': 'false',
+            # 'columns[5][data]': 'Expense',
+            # 'columns[5][name]': '',
+            # 'columns[5][searchable]': 'true',
+            # 'columns[5][orderable]': 'true',
+            # 'columns[5][search][value]': '',
+            # 'columns[5][search][regex]': 'false',
+            # 'columns[6][data]': 'CashBalance',
+            # 'columns[6][name]': '',
+            # 'columns[6][searchable]': 'true',
+            # 'columns[6][orderable]': 'true',
+            # 'columns[6][search][value]': '',
+            # 'columns[6][search][regex]': 'false',
+            # 'columns[7][data]': 'IESupport',
+            # 'columns[7][name]': '',
+            # 'columns[7][searchable]': 'true',
+            # 'columns[7][orderable]': 'true',
+            # 'columns[7][search][value]': '',
+            # 'columns[7][search][regex]': 'false',
+            # 'columns[8][data]': 'IEOpposition',
+            # 'columns[8][name]': '',
+            # 'columns[8][searchable]': 'true',
+            # 'columns[8][orderable]': 'true',
+            # 'columns[8][search][value]': '',
+            # 'columns[8][search][regex]': 'false',
+            'order[0][column]': '0',
+            'order[0][dir]': 'desc',
+            'start': '0',
+            'length': '9999',
+            'search[value]': name,
+            'search[regex]': 'true',
+        }
+        response = requests.post('https://seethemoney.az.gov/Reporting/GetNEWTableData/', params=params, cookies=self.cookies, headers=self.headers, data=data)
+        return response
+
+    def campaign_transaction(self, transact_id):
+        params = {
+            'transactionId': transact_id,
+        }
+        response = requests.post('https://seethemoney.az.gov/Reporting/GetNEWTransactionDetails/', params=params, cookies=self.cookies, headers=self.headers)
+        return response
+
+    def campaign_income(self, campaign_id):
+        params = {
+            'Page': '20',
+            'startYear': '2002',
+            'endYear': '2022',
+            'JurisdictionId': '0',
+            'TablePage': '1',
+            'TableLength': '10',
+            'Name': f'1~{campaign_id}',
+            'entityId': f'{campaign_id}',
+            'ChartName': '20',
+            'IsLessActive': 'false',
+            'ShowOfficeHolder': 'false',
+        }
+        data = {
+            'draw': '2',
+            'columns[0][data]': '',
+            'columns[0][name]': '',
+            'columns[0][searchable]': 'true',
+            'columns[0][orderable]': 'false',
+            'columns[0][search][value]': '',
+            'columns[0][search][regex]': 'false',
+            'columns[1][data]': 'TransactionId',
+            'columns[1][name]': '',
+            'columns[1][searchable]': 'true',
+            'columns[1][orderable]': 'true',
+            'columns[1][search][value]': '',
+            'columns[1][search][regex]': 'false',
+            'columns[2][data]': 'TransactionDate',
+            'columns[2][name]': '',
+            'columns[2][searchable]': 'true',
+            'columns[2][orderable]': 'true',
+            'columns[2][search][value]': '',
+            'columns[2][search][regex]': 'false',
+            'columns[3][data]': 'TransactionLastName',
+            'columns[3][name]': '',
+            'columns[3][searchable]': 'true',
+            'columns[3][orderable]': 'true',
+            'columns[3][search][value]': '',
+            'columns[3][search][regex]': 'false',
+            'columns[4][data]': 'Amount',
+            'columns[4][name]': '',
+            'columns[4][searchable]': 'true',
+            'columns[4][orderable]': 'true',
+            'columns[4][search][value]': '',
+            'columns[4][search][regex]': 'false',
+            'columns[5][data]': 'TransactionType',
+            'columns[5][name]': '',
+            'columns[5][searchable]': 'true',
+            'columns[5][orderable]': 'true',
+            'columns[5][search][value]': '',
+            'columns[5][search][regex]': 'false',
+            'order[0][column]': '2',
+            'order[0][dir]': 'desc',
+            'start': '0',
+            'length': '9999',
+            'search[value]': 'Contribution from Individuals',
+            'search[regex]': 'false',
+        }
+        response = requests.post('https://seethemoney.az.gov/Reporting/GetNEWDetailedTableData', params=params, cookies=self.cookies, headers=self.headers, data=data)
+        return response
+
+
+def main(cookie, userid):
+    test = seethemoneyAZ(cookie,userid)
+    data = json.loads((test.campaign_list('worsley')).text)
+    print(json.dumps(data, indent=4))
+    campaigns_df = pd.DataFrame(data['data'])# pd.read_json(data)
+    print(campaigns_df)
+    for campaign in data['data']:
+        print(campaign['EntityID'])
+        income_data = json.loads((test.campaign_income(campaign['EntityID'])).text)
+        income_df = pd.DataFrame(income_data['data'])# pd.read_json(data)
+        print(income_df)
+        # print(json.dumps(income_data, indent=4))
+        # print(len(income_data['data']))
+        for transact in income_data['data']:
+            transact_data = json.loads((test.campaign_transaction(transact['TransactionId'])).text)
+            # print(json.dumps(transact_data, indent=4))
+    pass
+
+if __name__ == '__main__':
+    main('TotR1kU_MY_S7HNFTeQUT2FawYY6JnTFw8M2EoRYCFU-1650905168-0-AastmZ0WLDi7mrG0J6MeK8cZUhGeUpcfOE16jmn9LUVKN06c2Ah8KltB+gFAepPox/PK1smMKJA0iglDTR6mYlw=','4d89dc61-f37c-4802-ae33-9aba5bbe0c61')
+   
