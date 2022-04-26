@@ -1,3 +1,4 @@
+# %%
 import requests
 import json
 import pandas as pd
@@ -172,20 +173,22 @@ class seethemoneyAZ:
             'order[0][column]': '2',
             'order[0][dir]': 'desc',
             'start': '0',
-            'length': '9999',
+            'length': '2',
             'search[value]': 'Contribution from Individuals',
             'search[regex]': 'false',
         }
         response = requests.post('https://seethemoney.az.gov/Reporting/GetNEWDetailedTableData', params=params, cookies=self.cookies, headers=self.headers, data=data)
         return response
 
-
+#%%
 def main(cookie, userid):
+    # %%
     test = seethemoneyAZ(cookie,userid)
     data = json.loads((test.campaign_list('worsley')).text)
     print(json.dumps(data, indent=4))
     campaigns_df = pd.DataFrame(data['data'])# pd.read_json(data)
     print(campaigns_df)
+    final_data_df = pd.DataFrame()
     for campaign in data['data']:
         print(campaign['EntityID'])
         income_data = json.loads((test.campaign_income(campaign['EntityID'])).text)
@@ -193,11 +196,16 @@ def main(cookie, userid):
         print(income_df)
         # print(json.dumps(income_data, indent=4))
         # print(len(income_data['data']))
+        transactions_details = []
         for transact in income_data['data']:
             transact_data = json.loads((test.campaign_transaction(transact['TransactionId'])).text)
+            transactions_details.append(transact_data)
             # print(json.dumps(transact_data, indent=4))
+        transactions_details_df = pd.DataFrame(transactions_details)
+        campaign_transactions_df = pd.merge(income_df,transactions_details_df,left_on='TransactionId', right_on='TransactionID',how='left')
+    final_data_df = final_data_df.append(campaign_transactions_df,ignore_index=True)
+    # %%
     pass
 
 if __name__ == '__main__':
     main('TotR1kU_MY_S7HNFTeQUT2FawYY6JnTFw8M2EoRYCFU-1650905168-0-AastmZ0WLDi7mrG0J6MeK8cZUhGeUpcfOE16jmn9LUVKN06c2Ah8KltB+gFAepPox/PK1smMKJA0iglDTR6mYlw=','4d89dc61-f37c-4802-ae33-9aba5bbe0c61')
-   
