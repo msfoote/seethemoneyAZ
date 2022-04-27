@@ -453,9 +453,9 @@ def main(cookie, userid):
     other_contributions_df.reset_index(inplace=True)
     other_contributions_df['Donor History'] = '$' + other_contributions_df['Amount'].astype(str) + ' - ' + other_contributions_df['CommitteeName']
     other_contributions_df.sort_values(by=['TransactionLastName','YEAR','Amount'], ascending=[True,False,False],inplace=True)
-    print(other_contributions_df)
-    test = (other_contributions_df.groupby(by=['TransactionNameGroupId','YEAR']).agg({'Donor History':np.unique})).reset_index().copy()
-    print(test)
+    # other_contributions_df.to_csv('othercontrib.csv')
+    test = (other_contributions_df.groupby(by=['TransactionNameGroupId','YEAR']).agg({'Donor History':pd.Series.unique})).reset_index().copy()
+    (other_contributions_df.groupby(by=['TransactionNameGroupId','YEAR']).agg({'Donor History':pd.Series.unique})).to_csv('test.csv')
     test['Donations'] = (test['Donor History'].apply(lambda x: '\n'.join(list(reversed(x)))))
     # test['Donations'] = (test['Donor History'].str.join('\n'))
     test['History'] = (test['YEAR'].astype(str) + '\n' + test['Donations'])
