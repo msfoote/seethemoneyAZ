@@ -325,6 +325,7 @@ class seethemoneyAZ:
     
     
     def candidate_ind_contributions(self, name, num_records):
+        # %%
         candidate_campaigns = json.loads(self.campaign_list(name,num_records).text)
         pac_campaigns = json.loads(self.pac_list(name,num_records).text)
         campaigns_df = pd.DataFrame(candidate_campaigns['data'])# pd.read_json(data)
@@ -333,27 +334,28 @@ class seethemoneyAZ:
         for index, campaign in campaigns_df.iterrows():
             income_data = json.loads((self.campaign_income(campaign['EntityID'],num_records)).text)
             income_df = pd.DataFrame(income_data['data'])# pd.read_json(data)
-            transactions_details = []
-            for transact in income_data['data']:
-                transact_data = json.loads((self.campaign_transaction(transact['TransactionId'])).text)
-                transactions_details.append(transact_data)
-                # print(json.dumps(transact_data, indent=4))
-            transactions_details_df = pd.DataFrame(transactions_details)
-            campaign_transactions_df = pd.merge(income_df,transactions_details_df,left_on='TransactionId', right_on='TransactionID',how='left',suffixes=(None,'_Detail'))
-            final_data_df = pd.concat([final_data_df,campaign_transactions_df], ignore_index=True)
+            if not income_df.empty:
+                transactions_details = []
+                for transact in income_data['data']:
+                    transact_data = json.loads((self.campaign_transaction(transact['TransactionId'])).text)
+                    transactions_details.append(transact_data)
+                transactions_details_df = pd.DataFrame(transactions_details)
+                campaign_transactions_df = pd.merge(income_df,transactions_details_df,left_on='TransactionId', right_on='TransactionID',how='left',suffixes=(None,'_Detail'))
+                final_data_df = pd.concat([final_data_df,campaign_transactions_df], ignore_index=True)
         for index, campaign in pac_df.iterrows():
             income_data = json.loads((self.pac_income(campaign['EntityID'],num_records)).text)
             income_df = pd.DataFrame(income_data['data'])# pd.read_json(data)
-            transactions_details = []
-            for transact in income_data['data']:
-                transact_data = json.loads((self.campaign_transaction(transact['TransactionId'])).text)
-                transactions_details.append(transact_data)
-                # print(json.dumps(transact_data, indent=4))
-            transactions_details_df = pd.DataFrame(transactions_details)
-            campaign_transactions_df = pd.merge(income_df,transactions_details_df,left_on='TransactionId', right_on='TransactionID',how='left',suffixes=(None,'_Detail'))
-            final_data_df = pd.concat([final_data_df,campaign_transactions_df], ignore_index=True)
+            if not income_df.empty:
+                transactions_details = []
+                for transact in income_data['data']:
+                    transact_data = json.loads((self.campaign_transaction(transact['TransactionId'])).text)
+                    transactions_details.append(transact_data)
+                transactions_details_df = pd.DataFrame(transactions_details)
+                campaign_transactions_df = pd.merge(income_df,transactions_details_df,left_on='TransactionId', right_on='TransactionID',how='left',suffixes=(None,'_Detail'))
+                final_data_df = pd.concat([final_data_df,campaign_transactions_df], ignore_index=True)
         for column in ['TransactionDate', 'TransactionDateYearMonth', 'TransactionDate_Detail']:
             final_data_df[column] = final_data_df[column].apply(lambda x: convert_unix_date(x))
+        # %%
         return final_data_df, campaigns_df
     
     def individual_history(self, entityId, num_records, min_year, max_year):
@@ -429,13 +431,12 @@ class seethemoneyAZ:
 def main(cookie, userid):
     # %%
     test = seethemoneyAZ(cookie,userid)
-    campaign_ind_contributions_df, campaign_list_df = test.candidate_ind_contributions('worsley',9999999)
+    campaign_ind_contributions_df, campaign_list_df = test.candidate_ind_contributions('sinema',9999999)
     campaign_ind_contributions_df.to_csv('contrib.csv')
     campaign_list_df.to_csv('campaign_list.csv')
     
     # Build a list of all people who have donated money to candidate
     report_out_df = campaign_ind_contributions_df.sort_values(by='TransactionId',ascending=False).groupby(by=['TransactionNameGroupId','TransactionLastName']).agg({'Address':'first','TransactionOccupation':'first','TransactionEmployer':'first','Amount_Detail':'sum'}).sort_values(by='Amount_Detail',ascending=False).copy()
-    print(report_out_df)
 
     # Section For each individual in that list find their historical donations
     historical_donations_df = pd.DataFrame()
@@ -447,9 +448,7 @@ def main(cookie, userid):
         # If there is data then add it to an overarching history
         if not individual_donations_df.empty:
             historical_donations_df = pd.concat([historical_donations_df,individual_donations_df], ignore_index=True)
-        # TODO Delete me
-        if row.name[0] == 350173:
-            print(row.name[0], individual_donations_df)
+
     # Convert the date column to Pandas readable date formats
     for column in ['TransactionDate', 'TransactionDateYearMonth']:
             historical_donations_df[column] = historical_donations_df[column].apply(lambda x: convert_unix_date(x))
