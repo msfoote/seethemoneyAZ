@@ -433,38 +433,63 @@ def main(cookie, userid):
     campaign_ind_contributions_df.to_csv('contrib.csv')
     campaign_list_df.to_csv('campaign_list.csv')
     
+    # Build a list of all people who have donated money to candidate
     report_out_df = campaign_ind_contributions_df.sort_values(by='TransactionId',ascending=False).groupby(by=['TransactionNameGroupId','TransactionLastName']).agg({'Address':'first','TransactionOccupation':'first','TransactionEmployer':'first','Amount_Detail':'sum'}).sort_values(by='Amount_Detail',ascending=False).copy()
     print(report_out_df)
+
+    # Section For each individual in that list find their historical donations
     historical_donations_df = pd.DataFrame()
+    # Iterate over each row of the list of donors
     for index, row in report_out_df.iterrows():
+        # Using donor ID, pull all of their donations from 2020 on
         individual_donations = json.loads(test.individual_history(row.name[0], 9999999, 2020, 2022).text)
         individual_donations_df = pd.DataFrame(individual_donations['data'])
+        # If there is data then add it to an overarching history
         if not individual_donations_df.empty:
             historical_donations_df = pd.concat([historical_donations_df,individual_donations_df], ignore_index=True)
+        # TODO Delete me
         if row.name[0] == 350173:
             print(row.name[0], individual_donations_df)
+    # Convert the date column to Pandas readable date formats
     for column in ['TransactionDate', 'TransactionDateYearMonth']:
             historical_donations_df[column] = historical_donations_df[column].apply(lambda x: convert_unix_date(x))
-    # historical_donations_df['Amount'] = pd.to_numeric(historical_donations_df['Amount'])
+    # Pull out the year of each donation for later aggregation
     historical_donations_df['YEAR'] = historical_donations_df['TransactionDate'].dt.year
     historical_donations_df.to_csv('historical.csv')
-    # historical_donations_df['Donor History'] = 
+    
+    # Aggregate by the donator, year and donation target and sum the amount of donations
     other_contributions_df = (historical_donations_df.fillna('')).groupby(by=['TransactionNameGroupId','TransactionLastName','YEAR','CommitteeName']).agg({'Amount':sum})
     other_contributions_df.reset_index(inplace=True)
-    other_contributions_df['Donor History'] = '$' + other_contributions_df['Amount'].astype(str) + ' - ' + other_contributions_df['CommitteeName']
-    other_contributions_df.sort_values(by=['TransactionLastName','YEAR','Amount'], ascending=[True,False,False],inplace=True)
-    # other_contributions_df.to_csv('othercontrib.csv')
-    test = (other_contributions_df.groupby(by=['TransactionNameGroupId','YEAR']).agg({'Donor History':pd.Series.unique})).reset_index().copy()
-    (other_contributions_df.groupby(by=['TransactionNameGroupId','YEAR']).agg({'Donor History':pd.Series.unique})).to_csv('test.csv')
-    test['Donations'] = (test['Donor History'].apply(lambda x: '\n'.join(list(reversed(x)))))
-    # test['Donations'] = (test['Donor History'].str.join('\n'))
-    test['History'] = (test['YEAR'].astype(str) + '\n' + test['Donations'])
-    # test['History2'] = test['History'].str[0]
-    print(test)
-    history_df = test.groupby(by=['TransactionNameGroupId']).agg({'History':'first'})
-    # final_df
     
-    (pd.merge(report_out_df.reset_index(), history_df.reset_index(),left_on='TransactionNameGroupId', right_on='TransactionNameGroupId', how='left')).to_excel('test.xlsx')
+    # Create a text field that shows the amount and donation target for each record
+    other_contributions_df['Donor History'] = '$' + other_contributions_df['Amount'].astype(str) + ' - ' + other_contributions_df['CommitteeName']
+    # Sort by Donator, Then year descending, then amount descending
+    other_contributions_df.sort_values(by=['TransactionLastName','YEAR','Amount'], ascending=[True,False,False],inplace=True)
+
+    # Aggregate by the Donator, year and then make an array of all the unique values of Donation History
+    compressed_df = other_contributions_df.groupby(by=['TransactionNameGroupId','YEAR']).agg({'Donor History':pd.Series.unique})
+    compressed_df.reset_index(inplace=True)
+    compressed_df['Donor History'] = compressed_df['Donor History'].apply(lambda x: '\n'.join(list(x)))
+    compressed_df.sort_values(by=['TransactionNameGroupId','YEAR'],ascending=[True,False],inplace=True)
+
+    # Aggregate by the Donator then make an array of all the unique values of Donation History
+    super_compressed_df = (compressed_df.groupby(by=['TransactionNameGroupId','YEAR']).agg({'Donor History':pd.Series.unique})).copy()
+    super_compressed_df.reset_index(inplace=True)
+    # Combine the list of Donor History into a single string
+    super_compressed_df['Donations'] = (super_compressed_df['Donor History'].apply(lambda x: '\n'.join(list(reversed(x)))))
+    # Prepend the year onto this string
+    super_compressed_df['History'] = '*-' + (super_compressed_df['YEAR'].astype(str) + '-*' + '\n' + super_compressed_df['Donations'])
+    # Sort the data according to how we want it aggregated
+    super_compressed_df.sort_values(by=['TransactionNameGroupId','YEAR'],ascending=[True, False],inplace=True)
+
+    # Aggregate by Donor generating a list of the 'History' values for each years
+    history_df = super_compressed_df.groupby(by=['TransactionNameGroupId']).agg({'History':pd.Series.unique})
+    
+    history_df['History'] = (history_df['History'].apply(lambda x: '\n'.join(list(x))))
+    
+    # Combine the list of Donor History into a single string
+    final_df = (pd.merge(report_out_df.reset_index(), history_df.reset_index(),left_on='TransactionNameGroupId', right_on='TransactionNameGroupId', how='left'))
+    final_df.to_excel('test.xlsx')
     
     
     # %%
