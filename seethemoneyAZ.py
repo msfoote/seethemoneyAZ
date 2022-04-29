@@ -337,6 +337,7 @@ class seethemoneyAZ:
             if not income_df.empty:
                 transactions_details = []
                 for transact in income_data['data']:
+                    # print(campaign['CommitteeName'], transact['TransactionId'], transact['TransactionLastName'] )
                     transact_data = json.loads((self.campaign_transaction(transact['TransactionId'])).text)
                     transactions_details.append(transact_data)
                 transactions_details_df = pd.DataFrame(transactions_details)
@@ -353,8 +354,9 @@ class seethemoneyAZ:
                 transactions_details_df = pd.DataFrame(transactions_details)
                 campaign_transactions_df = pd.merge(income_df,transactions_details_df,left_on='TransactionId', right_on='TransactionID',how='left',suffixes=(None,'_Detail'))
                 final_data_df = pd.concat([final_data_df,campaign_transactions_df], ignore_index=True)
-        for column in ['TransactionDate', 'TransactionDateYearMonth', 'TransactionDate_Detail']:
-            final_data_df[column] = final_data_df[column].apply(lambda x: convert_unix_date(x))
+        if not final_data_df.empty:
+            for column in ['TransactionDate', 'TransactionDateYearMonth', 'TransactionDate_Detail']:
+                final_data_df[column] = final_data_df[column].apply(lambda x: convert_unix_date(x))
         # %%
         return final_data_df, campaigns_df
     
@@ -431,7 +433,7 @@ class seethemoneyAZ:
 def main(cookie, userid):
     # %%
     test = seethemoneyAZ(cookie,userid)
-    campaign_ind_contributions_df, campaign_list_df = test.candidate_ind_contributions('sinema',9999999)
+    campaign_ind_contributions_df, campaign_list_df = test.candidate_ind_contributions('jerry lewis',9999999)
     campaign_ind_contributions_df.to_csv('contrib.csv')
     campaign_list_df.to_csv('campaign_list.csv')
     
@@ -443,12 +445,14 @@ def main(cookie, userid):
     # Iterate over each row of the list of donors
     for index, row in report_out_df.iterrows():
         # Using donor ID, pull all of their donations from 2020 on
-        individual_donations = json.loads(test.individual_history(row.name[0], 9999999, 2020, 2022).text)
-        individual_donations_df = pd.DataFrame(individual_donations['data'])
-        # If there is data then add it to an overarching history
-        if not individual_donations_df.empty:
-            historical_donations_df = pd.concat([historical_donations_df,individual_donations_df], ignore_index=True)
-
+        try:
+            individual_donations = json.loads(test.individual_history(row.name[0], 9999999, 2020, 2022).text)
+            individual_donations_df = pd.DataFrame(individual_donations['data'])
+            # If there is data then add it to an overarching history
+            if not individual_donations_df.empty:
+                historical_donations_df = pd.concat([historical_donations_df,individual_donations_df], ignore_index=True)
+        except:
+            print(row.name[0])
     # Convert the date column to Pandas readable date formats
     for column in ['TransactionDate', 'TransactionDateYearMonth']:
             historical_donations_df[column] = historical_donations_df[column].apply(lambda x: convert_unix_date(x))
@@ -495,4 +499,4 @@ def main(cookie, userid):
     pass
 
 if __name__ == '__main__':
-    main('__cf_bm=SnqrW5t4CKwoQhXbyldvviiaYnlSjgArZAIrbvjQo9Q-1651026810-0-AUsrZPjGre/i0FLLLMl7v8zRWD5/UnLFbzBqpV+kB5/SrYmwqLDpHL04dWYoYA0HcWUWekFAAQ+Nz690dwMgQd0=','a9123db1-91c2-41e2-bb78-109e7eaff531')
+    main('__cf_bm=Inu3gBrqoPokS8xTeE0ezQx5LT2Qw.M8VgqGBjKzN.I-1651189506-0-ATLBwFmpn/8Vrhtk+6NZskuADOg4OsySoNylEUr6OSIZCZ8tbjLmz8U3MaEEo5n5yEeskJNSPIlAhkS4nXfiHmg=','46f1bfcd-e19b-43ec-8742-992cfb3f76cb')
